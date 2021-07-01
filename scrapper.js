@@ -8,6 +8,7 @@ const dotSign = "."
 
 function parseURL(url) {
     url = url.replace("-ebook", "")
+    url = url.replace("-audiobook", "")
     refIndex = url.indexOf("ref")
     if (refIndex != -1) {
         url = url.substring(0, refIndex)
@@ -150,6 +151,7 @@ var scrapStream = async(url) => fetch(url)
         var bookTitle = root.querySelector('#productTitle')
             .textContent
             .replace(/&amp;/g, '&')
+            .replace(/&#39;/g, '\'')
 
         var authorName = root.querySelector(".contributorNameID")
             .textContent
