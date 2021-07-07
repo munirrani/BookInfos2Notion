@@ -6,52 +6,84 @@ const dollarSign = "$"
 const dotSign = "."
 
 function parsePrice(htmlContent, prices, index) {
-    var dotIndex = htmlContent.indexOf(dotSign, index)
-    var dollarsIndex = htmlContent.substring(index + 1, dotIndex)
-    var centsIndex = htmlContent.substring(dotIndex + 1, dotIndex + 3)
-    var price = dollarsIndex + "." + centsIndex
-    if (dollarsIndex != "0") prices.push(parseFloat(price).toFixed(2))
-    return prices
+    var dotIndex = htmlContent.indexOf(dotSign, index);
+    var dollarsIndex = htmlContent.substring(index + 1, dotIndex);
+    var centsIndex = htmlContent.substring(dotIndex + 1, dotIndex + 3);
+    var price = dollarsIndex + "." + centsIndex;
+    if (dollarsIndex != "0") prices.push(parseFloat(price).toFixed(2));
+    return prices;
 }
 
 let bookInfos
 
-var scrapStream = async(url) => fetch(url)
-    .then(res => res.text())
+var fetchLatestBookInfos = async(amazonURL, goodreadsURL) =>
+    Promise.all([fetch(amazonURL), fetch(goodreadsURL)])
+    .then(function(responses) {
+        return Promise.all(responses.map((res) => res.text()));
+    })
     .then(function(html) {
-        var root = parser.parse(html)
+        // Fetch latest from Amazon
+        var amazonHTML = html[0];
+        var amazonRoot = parser.parse(amazonHTML)
 
-        var popularity = root.querySelector("#acrCustomerReviewText")
-            .textContent
-            .replace(/\D/g, "")
-        popularity = parseInt(popularity)
+        var amazonPopularity = amazonRoot
+            .querySelector("#acrCustomerReviewText")
+            .textContent.replace(/\D/g, "");
+        amazonPopularity = parseInt(amazonPopularity);
 
-        var priceElement = root.querySelector("#tmmSwatches")
-        if (priceElement == null) priceElement = root.querySelector("#mediaTabs_tabSet")
+        var priceElement = amazonRoot.querySelector("#tmmSwatches");
+        if (priceElement == null)
+            priceElement = amazonRoot.querySelector("#mediaTabs_tabSet");
 
         if (priceElement != null) {
-            var priceElementTextContent = priceElement.textContent.replace(/\n/g, "")
-            var pricesArray = []
+            var priceElementTextContent = priceElement.textContent.replace(/\n/g, "");
+            var pricesArray = [];
 
-            var firstPriceIndex = priceElementTextContent.indexOf(dollarSign)
-            pricesArray = parsePrice(priceElementTextContent, pricesArray, firstPriceIndex)
-            var nextPriceIndex = firstPriceIndex
-            var count = 1 // Find the first 3 prices je. The rest of the ones are likely to be used books.
+            var firstPriceIndex = priceElementTextContent.indexOf(dollarSign);
+            pricesArray = parsePrice(
+                priceElementTextContent,
+                pricesArray,
+                firstPriceIndex
+            );
+            var nextPriceIndex = firstPriceIndex;
+            var count = 1; // Find the first 3 prices je. The rest of the ones are likely to be used books.
             while (nextPriceIndex != -1 && count != 3) {
-                var nextPriceIndex = priceElementTextContent.indexOf(dollarSign, nextPriceIndex + 1)
-                count++
+                var nextPriceIndex = priceElementTextContent.indexOf(
+                    dollarSign,
+                    nextPriceIndex + 1
+                );
+                count++;
                 if (nextPriceIndex != -1) {
-                    pricesArray = parsePrice(priceElementTextContent, pricesArray, nextPriceIndex)
+                    pricesArray = parsePrice(
+                        priceElementTextContent,
+                        pricesArray,
+                        nextPriceIndex
+                    );
                 }
             }
-            var price = Math.min.apply(Math, pricesArray)
-        } else {
-            var price = null
+            var price = Math.min.apply(Math, pricesArray);
         }
 
+        // Fetch latest from Goodreads
+        var goodreadsHTML = html[1];
+        var goodreadsRoot = parser.parse(goodreadsHTML)
+
+        var goodreadsRatingValue = goodreadsRoot
+            .querySelector("span[itemprop=ratingValue]")
+            .textContent.replace(/\n/g, "")
+            .trim();
+        goodreadsRatingValue = parseFloat(goodreadsRatingValue);
+
+        var goodreadsPopularity = goodreadsRoot
+            .querySelector("meta[itemprop=ratingCount]")
+            .getAttribute("content");
+        goodreadsPopularity = parseInt(goodreadsPopularity);
+
         bookInfos = {
-            popularity,
-            price
+            amazonPopularity,
+            price,
+            goodreadsRatingValue,
+            goodreadsPopularity,
         }
     })
 
@@ -64,14 +96,17 @@ var query = async() => {
     var idURLArray = []
     resultsArray.forEach(function(item) {
         var id = item.id
-        var url = item.properties.URL.url
-        idURLArray.push({ id, url })
+        var amazonURL = item.properties["Amazon URL"].url
+        var goodreadsURL = item.properties["Goodreads URL"].url
+        idURLArray.push({ id, amazonURL, goodreadsURL })
     })
 
     for (var i = 0; i < idURLArray.length; i++) {
-        await scrapStream(idURLArray[i].url)
-        idURLArray[i].popularity = bookInfos.popularity
+        await fetchLatestBookInfos(idURLArray[i].amazonURL, idURLArray[i].goodreadsURL)
+        idURLArray[i].amazonPopularity = bookInfos.amazonPopularity
         idURLArray[i].price = bookInfos.price
+        idURLArray[i].goodreadsPopularity = bookInfos.goodreadsPopularity
+        idURLArray[i].goodreadsRatingValue = bookInfos.goodreadsRatingValue
         console.log("Book " + (i + 1) + " Scrapped. Details:")
         console.log(idURLArray[i])
     }
@@ -81,12 +116,18 @@ var query = async() => {
         databaseQuery = await notion.pages.update({
             page_id: pageId,
             properties: {
-                'Popularity': {
-                    number: idURLArray[i].popularity
+                'Amazon Popularity': {
+                    number: idURLArray[i].amazonPopularity
                 },
                 'Price': {
                     number: idURLArray[i].price
-                }
+                },
+                "Goodreads Rating": {
+                    number: idURLArray[i].goodreadsRatingValue,
+                },
+                "Goodreads Popularity": {
+                    number: idURLArray[i].goodreadsPopularity,
+                },
             },
         });
         console.log(databaseQuery);
