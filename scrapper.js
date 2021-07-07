@@ -641,8 +641,8 @@ var obtainBookURLFromOtherSource = async(bookURL) =>
     .then((url) => {
         return querySearch(url);
     })
-    .then(function(bookURL) {
-        return bookURL.includes(goodreadsStartingURL) ? [bookURL, parseURL(bookURL)] : [parseURL(bookURL), bookURL];
+    .then(function(anotherBookURL) {
+        return anotherBookURL.includes(goodreadsStartingURL) ? [bookURL, parseURL(anotherBookURL)] : [parseURL(anotherBookURL), bookURL];
     })
     .then(function(urlResultArray) {
         // Only allow scraping if both URLs are obtained
