@@ -1,5 +1,5 @@
-# AmazonBooks2Notion
-A simple tool to import book product pages from Amazon into Notion note-taking app as a watchlist.
+# BookInfos2Notion
+A simple tool to import book product pages from Amazon and Goodreads into Notion note-taking app as a watchlist.
 <br>
 
 Made using Node.js JavaScript backend framework and Notion API client.
