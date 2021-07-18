@@ -90,7 +90,7 @@ var fetchLatestBookInfos = async(amazonURL, goodreadsURL) =>
 var query = async() => {
 
     var databaseQuery = await notion.databases.query({
-        database_id: process.env.DATABASE_ID,
+        database_id: process.env.BOOK_WATCHLIST_DATABASE_ID,
     });
     var resultsArray = databaseQuery.results
     var idURLArray = []
