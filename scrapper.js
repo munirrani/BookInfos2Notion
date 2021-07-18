@@ -128,7 +128,7 @@ function parseTags(textArray) {
 const insertToDatabase = async(scrapper) =>
     notion.pages.create({
         parent: {
-            database_id: process.env.DATABASE_ID,
+            database_id: process.env.BOOK_WATCHLIST_DATABASE_ID,
         },
         properties: {
             Name: {
@@ -188,7 +188,7 @@ const insertToDatabase = async(scrapper) =>
 const insertToDatabaseOnlyAmazon = async(scrapper) =>
     notion.pages.create({
         parent: {
-            database_id: process.env.DATABASE_ID,
+            database_id: process.env.BOOK_WATCHLIST_DATABASE_ID,
         },
         properties: {
             Name: {
@@ -230,7 +230,7 @@ const insertToDatabaseOnlyAmazon = async(scrapper) =>
 const insertToDatabaseOnlyGoodreads = async(scrapper) =>
     notion.pages.create({
         parent: {
-            database_id: process.env.DATABASE_ID,
+            database_id: process.env.BOOK_WATCHLIST_DATABASE_ID,
         },
         properties: {
             Name: {
