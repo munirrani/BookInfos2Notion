@@ -26,59 +26,74 @@ var fetchLatestBookInfos = async(amazonURL, goodreadsURL) =>
         var amazonHTML = html[0];
         var amazonRoot = parser.parse(amazonHTML)
 
-        var amazonPopularity = amazonRoot
-            .querySelector("#acrCustomerReviewText")
-            .textContent.replace(/\D/g, "");
-        amazonPopularity = parseInt(amazonPopularity);
+        try {
+            var amazonPopularity = amazonRoot
+                .querySelector("#acrCustomerReviewText")
+                .textContent.replace(/\D/g, "");
+            amazonPopularity = parseInt(amazonPopularity);
+        } catch (err) {
+            var amazonPopularity = 0;
+        }
 
-        var priceElement = amazonRoot.querySelector("#tmmSwatches");
-        if (priceElement == null)
-            priceElement = amazonRoot.querySelector("#mediaTabs_tabSet");
-
-        if (priceElement != null) {
-            var priceElementTextContent = priceElement.textContent.replace(/\n/g, "");
-            var pricesArray = [];
-
-            var firstPriceIndex = priceElementTextContent.indexOf(dollarSign);
-            pricesArray = parsePrice(
-                priceElementTextContent,
-                pricesArray,
-                firstPriceIndex
-            );
-            var nextPriceIndex = firstPriceIndex;
-            var count = 1; // Find the first 3 prices je. The rest of the ones are likely to be used books.
-            while (nextPriceIndex != -1 && count != 3) {
-                var nextPriceIndex = priceElementTextContent.indexOf(
-                    dollarSign,
-                    nextPriceIndex + 1
+        try {
+            var priceElement = amazonRoot.querySelector("#tmmSwatches");
+            if (priceElement == null)
+                priceElement = amazonRoot.querySelector("#mediaTabs_tabSet");
+    
+            if (priceElement != null) {
+                var priceElementTextContent = priceElement.textContent.replace(/\n/g, "");
+                var pricesArray = [];
+    
+                var firstPriceIndex = priceElementTextContent.indexOf(dollarSign);
+                pricesArray = parsePrice(
+                    priceElementTextContent,
+                    pricesArray,
+                    firstPriceIndex
                 );
-                count++;
-                if (nextPriceIndex != -1) {
-                    pricesArray = parsePrice(
-                        priceElementTextContent,
-                        pricesArray,
-                        nextPriceIndex
+                var nextPriceIndex = firstPriceIndex;
+                var count = 1; // Find the first 3 prices je. The rest of the ones are likely to be used books.
+                while (nextPriceIndex != -1 && count != 3) {
+                    var nextPriceIndex = priceElementTextContent.indexOf(
+                        dollarSign,
+                        nextPriceIndex + 1
                     );
+                    count++;
+                    if (nextPriceIndex != -1) {
+                        pricesArray = parsePrice(
+                            priceElementTextContent,
+                            pricesArray,
+                            nextPriceIndex
+                        );
+                    }
                 }
+                var price = Math.min.apply(Math, pricesArray);
             }
-            var price = Math.min.apply(Math, pricesArray);
+        } catch (err) {
+            var price = 0;
         }
 
         // Fetch latest from Goodreads
         var goodreadsHTML = html[1];
         var goodreadsRoot = parser.parse(goodreadsHTML)
 
-        var goodreadsRatingValue = goodreadsRoot
-            .querySelector("span[itemprop=ratingValue]")
-            .textContent.replace(/\n/g, "")
-            .trim();
-        goodreadsRatingValue = parseFloat(goodreadsRatingValue);
+        try {
+            var goodreadsRatingValue = goodreadsRoot
+                .querySelector("span[itemprop=ratingValue]")
+                .textContent.replace(/\n/g, "")
+                .trim();
+            goodreadsRatingValue = parseFloat(goodreadsRatingValue);
+        } catch (err) {
+            var goodreadsRatingValue = 0;
+        }
 
-        var goodreadsPopularity = goodreadsRoot
-            .querySelector("meta[itemprop=ratingCount]")
-            .getAttribute("content");
-        goodreadsPopularity = parseInt(goodreadsPopularity);
-
+        try {
+            var goodreadsPopularity = goodreadsRoot
+                .querySelector("meta[itemprop=ratingCount]")
+                .getAttribute("content");
+            goodreadsPopularity = parseInt(goodreadsPopularity);
+        } catch (err) {
+            var goodreadsPopularity = 0;
+        }
         bookInfos = {
             amazonPopularity,
             price,
@@ -98,15 +113,19 @@ var query = async() => {
         var id = item.id
         var amazonURL = item.properties["Amazon URL"].url
         var goodreadsURL = item.properties["Goodreads URL"].url
-        idURLArray.push({ id, amazonURL, goodreadsURL })
+        var amazonPopularity = item.properties["Amazon Popularity"].number
+        var price = item.properties["Price"].number
+        var goodreadsPopularity = item.properties["Goodreads Popularity"].number
+        var goodreadsRatingValue = item.properties["Goodreads Rating"].number
+        idURLArray.push({ id, amazonURL, goodreadsURL, amazonPopularity, price, goodreadsPopularity, goodreadsRatingValue })
     })
 
     for (var i = 0; i < idURLArray.length; i++) {
         await fetchLatestBookInfos(idURLArray[i].amazonURL, idURLArray[i].goodreadsURL)
-        idURLArray[i].amazonPopularity = bookInfos.amazonPopularity
-        idURLArray[i].price = bookInfos.price
-        idURLArray[i].goodreadsPopularity = bookInfos.goodreadsPopularity
-        idURLArray[i].goodreadsRatingValue = bookInfos.goodreadsRatingValue
+        if (bookInfos.amazonPopularity != 0) idURLArray[i].amazonPopularity = bookInfos.amazonPopularity
+        if (bookInfos.price != 0) idURLArray[i].price = bookInfos.price
+        if (bookInfos.goodreadsPopularity != 0) idURLArray[i].goodreadsPopularity = bookInfos.goodreadsPopularity
+        if (bookInfos.goodreadsRatingValue != 0) idURLArray[i].goodreadsRatingValue = bookInfos.goodreadsRatingValue
         console.log("Book " + (i + 1) + " Scrapped. Details:")
         console.log(idURLArray[i])
     }
