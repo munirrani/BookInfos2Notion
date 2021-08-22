@@ -106,6 +106,7 @@ var findTheme = function(text) {
         "Design",
         "Operating Systems",
         "Biographies",
+        "Fiction",
     ];
 
     tags = [];
