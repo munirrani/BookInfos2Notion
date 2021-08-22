@@ -522,7 +522,7 @@ var searchOnGoodreads = async(searchUrl) =>
             var linksElement = table.querySelectorAll(".bookTitle");
             for (var linkElement of linksElement) {
                 var link = linkElement.getAttribute("href");
-                if (!link.includes("summary") || !link.includes("simplified")) {
+                if (!link.includes("summary") && !link.includes("simplified")) {
                     // Avoid picking summary books as there are lots of them
                     resultingURL += link;
                     break;
