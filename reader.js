@@ -113,10 +113,26 @@ var query = async() => {
         var id = item.id
         var amazonURL = item.properties["Amazon URL"].url
         var goodreadsURL = item.properties["Goodreads URL"].url
-        var amazonPopularity = item.properties["Amazon Popularity"].number
-        var price = item.properties["Price"].number
-        var goodreadsPopularity = item.properties["Goodreads Popularity"].number
-        var goodreadsRatingValue = item.properties["Goodreads Rating"].number
+        try {
+            var amazonPopularity = item.properties["Amazon Popularity"].number
+        } catch (err) {
+            var amazonPopularity = 0
+        }
+        try {
+            var price = item.properties["Price"].number
+        } catch (err) {
+            var price = 0
+        }
+        try {
+            var goodreadsPopularity = item.properties["Goodreads Popularity"].number
+        } catch (err) {
+            var goodreadsPopularity = 0
+        }
+        try {
+            var goodreadsRatingValue = item.properties["Goodreads Rating"].number
+        } catch (err) {
+            var goodreadsRatingValue = 0
+        }
         idURLArray.push({ id, amazonURL, goodreadsURL, amazonPopularity, price, goodreadsPopularity, goodreadsRatingValue })
     })
 
